@@ -170,50 +170,74 @@ If you want to download the output to your local machine:
 hdfs dfs -get /output_final /path/to/local/output
 ```
 ---
+### **Step-by-Step Instructions for Running the Project**  
 
-### **Following are the step-by-step instructions (including command-line commands) for running the project**  
+1. Start the Docker environment:
+   ```sh
+   $ docker compose up -d
+   ```
 
-$ docker compose up -d
-$ docker cp target/DocumentSimilarity-0.0.1-SNAPSHOT.jar resourcemanager:/opt/hadoop-3.2.1/share/hadoop/mapreduce/
-$ mvn clean package
-$ docker cp target/DocumentSimilarity-0.0.1-SNAPSHOT.jar resourcemanager:/opt/hadoop-3.2.1/share/hadoop/mapreduce/
-$ docker cp dataset/documents.txt resourcemanager:/opt/hadoop-3.2.1/share/hadoop/mapreduce/
-$ docker exec -it resourcemanager /bin/bash
-root@bb2701fec378:/# cd /opt/hadoop-3.2.1/share/hadoop/mapreduce/
-root@bb2701fec378:/opt/hadoop-3.2.1/share/hadoop/mapreduce# hadoop fs -mkdir -p /input/dataset
-root@bb2701fec378:/opt/hadoop-3.2.1/share/hadoop/mapreduce# hadoop fs -put ./documents.txt /input/dataset
-root@bb2701fec378:/opt/hadoop-3.2.1/share/hadoop/mapreduce# hadoop jar /opt/hadoop-3.2.1/share/hadoop/mapreduce/DocumentSimilarity-0.0.1-SNAPSHOT.jar com.example.controller.DocumentSimilarityDriver /input/dataset/documents.txt /output
-root@bb2701fec378:/opt/hadoop-3.2.1/share/hadoop/mapreduce# hadoop fs -cat /output/*
-2025-02-15 02:04:28,699 INFO sasl.SaslDataTransferClient: SASL encryption trust check: localHostTrusted = false, remoteHostTrusted = false
-Document3, Document2    Similarity: 0.10
-Document3, Document1    Similarity: 0.20
-Document2, Document1    Similarity: 0.18
-root@bb2701fec378:/opt/hadoop-3.2.1/share/hadoop/mapreduce# hadoop jar /opt/hadoop-3.2.1/share/hadoop/mapreduce/DocumentSimilarity-0.0.1-SNAPSHOT.jar com.example.controller.DocumentSimilarityDriver /input/dataset/documents.txt /output
-root@bb2701fec378:/opt/hadoop-3.2.1/share/hadoop/mapreduce# hadoop fs -cat /output/*
-2025-02-15 02:06:33,772 INFO sasl.SaslDataTransferClient: SASL encryption trust check: localHostTrusted = false, remoteHostTrusted = false
-Document3, Document2    Similarity: 0.10
-Document3, Document1    Similarity: 0.20
-Document2, Document1    Similarity: 0.18
-root@bb2701fec378:/opt/hadoop-3.2.1/share/hadoop/mapreduce# hadoop fs -cat /output/output/*
-cat: `/output/output/*': No such file or directory
-root@bb2701fec378:/opt/hadoop-3.2.1/share/hadoop/mapreduce# hdfs dfs -get /output /opt/hadoop-3.2.1/share/hap/mapreduce/
-get: `/opt/hadoop-3.2.1/share/hap/mapreduce/': No such file or directory: `file:///opt/hadoop-3.2.1/share/hap/mapreduce'
-root@bb2701fec378:/opt/hadoop-3.2.1/share/hadoop/mapreduce# hdfs dfs -get /output /opt/hadoop-3.2.1/share/hadoop/mapreduce/
-\2025-02-15 02:08:21,407 INFO sasl.SaslDataTransferClient: SASL encryption trust check: localHostTrusted = false, remoteHostTrusted = false
-root@bb2701fec378:/opt/hadoop-3.2.1/share/hadoop/mapreduce# hdfs dfs -get /output /opt/hadoop-3.2.1/share/hadoop/mapreduce/
-get: `/opt/hadoop-3.2.1/share/hadoop/mapreduce/output/_SUCCESS': File exists
-get: `/opt/hadoop-3.2.1/share/hadoop/mapreduce/output/part-r-00000': File exists
-root@bb2701fec378:/opt/hadoop-3.2.1/share/hadoop/mapreduce# exit
-exit
-@BandaSrija ➜ /workspaces/assignment-1-mapreduce-document-similarity-BandaSrija (master) $ docker cp resourcemanager:/opt/hadoop-3.2.1/share/hadoop/mapreduce/output/ /workspaces/assignment-1-mapreduce-document-similarity-BandaSrija/output
-Successfully copied 3.07kB to /workspaces/assignment-1-mapreduce-document-similarity-BandaSrija/output
+2. Build and copy the JAR file to the Hadoop container:
+   ```sh
+   $ mvn clean package
+   $ docker cp target/DocumentSimilarity-0.0.1-SNAPSHOT.jar resourcemanager:/opt/hadoop-3.2.1/share/hadoop/mapreduce/
+   ```
 
+3. Copy the dataset into the container:
+   ```sh
+   $ docker cp dataset/documents.txt resourcemanager:/opt/hadoop-3.2.1/share/hadoop/mapreduce/
+   ```
 
+4. Access the Hadoop container:
+   ```sh
+   $ docker exec -it resourcemanager /bin/bash
+   ```
 
-### Challenges Faced and Solutions:
+5. Inside the container, navigate to the Hadoop directory:
+   ```sh
+   root@container:/# cd /opt/hadoop-3.2.1/share/hadoop/mapreduce/
+   ```
 
-1. Incorrect Output Format: The Reducer was emitting raw word-document pairs instead of Jaccard Similarity. Fixed by ensuring the Reducer correctly calculates and formats the similarity scores.
+6. Create an HDFS directory and upload the dataset:
+   ```sh
+   hadoop fs -mkdir -p /input/dataset
+   hadoop fs -put ./documents.txt /input/dataset
+   ```
 
-2. File Not Found in Container: Input files were missing in the container due to incorrect volume mounting. Resolved by manually copying files and verifying the Docker volume configuration.
+7. Run the MapReduce job:
+   ```sh
+   hadoop jar /opt/hadoop-3.2.1/share/hadoop/mapreduce/DocumentSimilarity-0.0.1-SNAPSHOT.jar \
+   com.example.controller.DocumentSimilarityDriver /input/dataset/documents.txt /output
+   ```
 
-3. Debugging MapReduce Logic: Added logging to the Mapper and Reducer to trace intermediate steps and ensure correct data flow.
+8. View the output:
+   ```sh
+   hadoop fs -cat /output/*
+   ```
+   **Example Output:**
+   ```
+   Document3, Document2    Similarity: 0.10
+   Document3, Document1    Similarity: 0.20
+   Document2, Document1    Similarity: 0.18
+   ```
+
+9. Copy the output back to the local environment:
+   ```sh
+   docker cp resourcemanager:/opt/hadoop-3.2.1/share/hadoop/mapreduce/output/ \
+   /workspaces/assignment-1-mapreduce-document-similarity/output
+   ```
+
+### **Challenges Faced and Solutions**
+
+1. **Incorrect Output Format:**
+   - **Issue:** The Reducer was emitting raw word-document pairs instead of Jaccard Similarity.
+   - **Solution:** Ensured the Reducer correctly calculates and formats the similarity scores.
+
+2. **File Not Found in Container:**
+   - **Issue:** Input files were missing due to incorrect volume mounting.
+   - **Solution:** Manually copied files and verified the Docker volume configuration.
+
+3. **Debugging MapReduce Logic:**
+   - **Issue:** Errors in intermediate steps led to incorrect similarity calculations.
+   - **Solution:** Added logging to the Mapper and Reducer to trace intermediate steps and ensure correct data flow.
+
